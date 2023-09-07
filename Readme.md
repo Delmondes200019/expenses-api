@@ -1,0 +1,7 @@
+# Variáveis de ambiente para envio de e-mail
+
+- EMAIL_PASSWORD
+- EMAIL_USERNAME
+- EMAIL_PORT
+- EMAIL_HOST
+- EXPENSES_REPORT_RECEIVER_EMAIL 
