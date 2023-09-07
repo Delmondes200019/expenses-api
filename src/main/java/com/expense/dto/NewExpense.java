@@ -13,11 +13,12 @@ import java.time.LocalDate;
 @ToString
 public class NewExpense {
 
+    @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
     private LocalDate date;
 
     @NotNull
-    private BigDecimal value;
+    private BigDecimal total;
 
     @NotEmpty
     private String description;

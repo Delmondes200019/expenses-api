@@ -1,7 +1,10 @@
 package com.expense.service;
 
 import com.expense.dto.ExpenseReportInfo;
+import com.expense.dto.ExpenseView;
+import com.expense.dto.NewExpense;
 import com.expense.enm.ReportType;
+import com.expense.mapper.ExpenseMapper;
 import com.expense.model.Expense;
 import com.expense.respository.ExpenseRepository;
 import com.expense.service.email.ExpensesReportEmailService;
@@ -19,6 +22,9 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Autowired
     ExpenseRepository expenseRepository;
+
+    @Autowired
+    ExpenseMapper expenseMapper;
 
     @Autowired
     ExpensesReportEmailService expensesReportEmailService;
@@ -41,5 +47,13 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .endDate(endDate)
                 .initialDate(initialDate)
                 .build(), ReportType.EXCEL);
+    }
+
+    @Override
+    public ExpenseView generateExpense(NewExpense newExpense) {
+        log.info("Registering new expense {}", newExpense);
+        Expense expense = expenseMapper.mapToExpense(newExpense);
+        Expense registeredExpense = expenseRepository.save(expense);
+        return expenseMapper.mapToExpenseView(registeredExpense);
     }
 }

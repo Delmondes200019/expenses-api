@@ -1,5 +1,7 @@
 package com.expense.controller;
 
+import com.expense.dto.ExpenseView;
+import com.expense.dto.NewExpense;
 import com.expense.service.ExpenseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.Map;
@@ -31,5 +34,12 @@ public class ExpenseController {
         expenseService.generateExpenseReport(initialDate, endDate);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/new")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<ExpenseView> createNewExpense(@RequestBody @Valid NewExpense newExpense){
+        ExpenseView expenseView = expenseService.generateExpense(newExpense);
+        return ResponseEntity.ok(expenseView);
     }
 }
