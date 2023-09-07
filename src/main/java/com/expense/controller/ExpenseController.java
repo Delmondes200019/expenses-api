@@ -1,7 +1,6 @@
 package com.expense.controller;
 
 import com.expense.service.ExpenseService;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @RestController

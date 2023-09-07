@@ -1,13 +1,9 @@
 package com.expense.service.email;
 
 import com.expense.dto.ExpenseReportInfo;
-import com.expense.model.Expense;
+import com.expense.enm.ReportType;
+import com.expense.service.report.ReportGeneratorService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -16,20 +12,16 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import javax.mail.internet.MimeMessage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 
 @Slf4j
 @Service
 public class ExpensesReportEmailServiceImpl implements ExpensesReportEmailService {
 
     @Autowired
-    private JavaMailSender emailSender;
+    JavaMailSender emailSender;
 
     @Value(value = "${EMAIL_USERNAME}")
     String sender;
@@ -37,32 +29,37 @@ public class ExpensesReportEmailServiceImpl implements ExpensesReportEmailServic
     @Value("${expenses-report.receiver-email}")
     String receiverEmail;
 
+    @Autowired
+    List<ReportGeneratorService> reportGeneratorServices;
+
     @Override
-    public void sendReport(ExpenseReportInfo expenseReportInfo) {
+    public void sendReport(ExpenseReportInfo expenseReportInfo, ReportType reportType) {
         try {
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
             String formattedInitialDate = dateFormatter.format(expenseReportInfo.getInitialDate());
             String formattedEndDate = dateFormatter.format(expenseReportInfo.getEndDate());
 
-            String fileId = UUID.randomUUID().toString();
-            String fileName = fileId.concat("-").concat(formattedInitialDate).concat("-").concat(formattedEndDate);
+            String emailText = "Hi, this is your expenses report in the period ".concat(formattedInitialDate).concat(" ").concat(formattedEndDate);
+            String emailSubject = "Expenses Report - ".concat(formattedInitialDate).concat(" to ").concat(formattedEndDate);
 
-            String tempFilePath = createExcelReportFile(formattedInitialDate, formattedEndDate, fileName, expenseReportInfo);
+            ReportGeneratorService reportGeneratorService = reportGeneratorServices.stream()
+                    .filter(service -> service.supports(reportType))
+                    .findFirst().orElseThrow(() -> new RuntimeException("No generator for report type ".concat(reportType.name().concat(" found"))));
+
+            FileSystemResource reportFile = reportGeneratorService.generate(expenseReportInfo);
 
             MimeMessage message = emailSender.createMimeMessage();
 
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setFrom(sender);
-            helper.setText("Hi, this is your expenses report in the period ".concat(formattedInitialDate).concat(" ").concat(formattedEndDate));
+            helper.setText(emailText);
             helper.setTo(receiverEmail);
-            helper.setSubject("Expenses Report - ".concat(formattedInitialDate).concat(" to ").concat(formattedEndDate));
+            helper.setSubject(emailSubject);
 
-            log.info(tempFilePath.toString());
+            log.info(reportFile.getFilename());
 
-            FileSystemResource file = new FileSystemResource(tempFilePath);
-
-            helper.addAttachment(file.getFilename(), file);
+            helper.addAttachment(Objects.requireNonNull(reportFile.getFilename()), reportFile);
 
             log.info("Sending expenses report email to {} from {}", receiverEmail, sender);
 
@@ -77,33 +74,4 @@ public class ExpensesReportEmailServiceImpl implements ExpensesReportEmailServic
         }
     }
 
-    private String createExcelReportFile(String formattedInitialDate, String formattedEndDate, String fileName, ExpenseReportInfo expenseReportInfo) throws IOException {
-        List<Expense> expenses = expenseReportInfo.getExpenses();
-
-        String tempFilePath = Files.createTempFile(fileName, ".xlsx").toAbsolutePath().toString();
-
-        FileOutputStream fileOutputStream = new FileOutputStream(new File(tempFilePath));
-
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("expenses-report-".concat(formattedInitialDate).concat("-").concat(formattedEndDate));
-
-        for (int rowNumber = 0; rowNumber < expenses.size(); rowNumber++){
-            Expense expense = expenses.get(rowNumber);
-
-            Row row = sheet.createRow(rowNumber);
-            Cell descriptionCell = row.createCell(0);
-            descriptionCell.setCellValue(expense.getDescription());
-
-            Cell totalCell = row.createCell(1);
-            totalCell.setCellValue(expense.getTotal().toString());
-
-            Cell dateCell = row.createCell(2);
-            dateCell.setCellValue(DateTimeFormatter.ofPattern("dd/MM/yyyy").format(expense.getTimestamp()));
-        }
-
-        workbook.write(fileOutputStream);
-        workbook.close();
-
-        return tempFilePath;
-    }
 }

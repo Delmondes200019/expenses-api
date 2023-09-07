@@ -1,6 +1,7 @@
 package com.expense.service;
 
 import com.expense.dto.ExpenseReportInfo;
+import com.expense.enm.ReportType;
 import com.expense.model.Expense;
 import com.expense.respository.ExpenseRepository;
 import com.expense.service.email.ExpensesReportEmailService;
@@ -10,8 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -41,6 +40,6 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .expenses(expenses)
                 .endDate(endDate)
                 .initialDate(initialDate)
-                .build());
+                .build(), ReportType.EXCEL);
     }
 }
